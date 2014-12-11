@@ -82,16 +82,16 @@ The resulting JSON, after serialization thus becomes:
 	    ]
 	}
 	
-	Is it production ready?
-	-----------------------
+Is it production ready?
+-----------------------
+
+At this point, not really. It's definately usable, but the code needs to be cleaned up a bit and a few extra features needs to be added. I am personally using this serializer in my projects, but your mileage might vary depending on your requirements. 
 	
-	At this point, not really. It's definately usable, but the code needs to be cleaned up a bit and a few extra features needs to be added. I am personally using this serializer in my projects, but your mileage might vary depending on your requirements. 
-	
-	How to use it
-	-------------
-	
-	Using the serializer is quite straight forward. Simply instantiate a RestSerializer class and execite the serialize method. 
-	
+How to use it
+-------------
+
+Using the serializer is quite straight forward. Simply instantiate a RestSerializer class and execite the serialize method. 
+
     Session session = repository.getSession(uuid);
 
     RestSerializer rs = new RestSerializer();
