@@ -87,6 +87,8 @@ Is it production ready?
 
 At this point, not really. It's definately usable, but the code needs to be cleaned up a bit and a few extra features needs to be added. I am personally using this serializer in my projects, but your mileage might vary depending on your requirements. 
 
+Currently, there are some empty try-catch blocks that also needs to be refactored properly, as they currently swallow some exceptions without handling them in a proper manner :) 
+
 Especially in order to support other serializing targets (like JSON API), a cleanup is needed. The code for Hyrrokkin is extracted from a larger project, and thus will be updated moving forward. 
 	
 How to use it
