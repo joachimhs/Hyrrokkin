@@ -16,7 +16,14 @@ import java.util.*;
  */
 public class RestSerializer  {
 
+    /**
+     * This is the only public method, and will serialize any input POJO
+     * @param src
+     * @return
+     */
     public JsonElement serialize(Object src) {
+        //There is one hash table for the root keys, and one hash table for each object of a specific type
+        //This will hinder duplicate objects in the return JSON
         Hashtable<String, Hashtable<String, JsonObject>> rootKeys = new Hashtable<>();
 
         if (List.class.isAssignableFrom(src.getClass())) {
@@ -32,6 +39,11 @@ public class RestSerializer  {
         return topObject;
     }
 
+    /**
+     * Generating JSON from the rootKeys hashtable
+     * @param rootKeys
+     * @return
+     */
     private JsonObject generateJson(Hashtable<String, Hashtable<String, JsonObject>> rootKeys) {
         JsonObject topObject = new JsonObject();
 
@@ -54,6 +66,12 @@ public class RestSerializer  {
         return topObject;
     }
 
+    /**
+     * Gets the ID of the object, either as the id-property or of the property with the
+     * annotation @SerializedName("id")
+     * @param object
+     * @return
+     */
     private String getId(Object object) {
         String id = null;
 
@@ -74,6 +92,12 @@ public class RestSerializer  {
         return id;
     }
 
+    /**
+     * Return the string value of a field
+     * @param object
+     * @param fieldName
+     * @return
+     */
     private String getFieldStringValue(Object object, String fieldName) {
         String value = null;
         try {
@@ -88,6 +112,13 @@ public class RestSerializer  {
         return value;
     }
 
+    /*
+     * This method is in need of refactoring. Its too large, and has a too-wide responsibility. This makes it hard to follow its recursive logic.
+     *
+     * This method takes an object which can also be an array or a List, and adds any new object to the rootKeys hashtable. It recursively calls itself
+     * whenever it reaches a property of type Object, Array or List, marked with the @Expose annotation
+     *
+     */
     private void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys) {
         JsonObject rootObject = new JsonObject();
 
@@ -185,6 +216,11 @@ public class RestSerializer  {
         }
     }
 
+    /**
+     * Checks is a class is one of the primitive types and returns true||false depending
+     * @param clazz
+     * @return
+     */
     private boolean isPrimitive(Class clazz) {
         return clazz.equals(String.class) ||
                 clazz.equals(Double.TYPE) || clazz.getName().equals("java.lang.Double") ||
@@ -194,6 +230,13 @@ public class RestSerializer  {
 
     }
 
+    /**
+     * Getting the primitive value returned from the class
+     * @param clazz
+     * @param value
+     * @return
+     * @throws IllegalAccessException
+     */
     private JsonPrimitive getPrimitiveValue(Class clazz, Object value) throws IllegalAccessException {
         JsonPrimitive element = null;
 
@@ -216,6 +259,12 @@ public class RestSerializer  {
         return element;
     }
 
+    /**
+     * Checks if a class has a field or not. Mostly used to check if there is an id-property on the class
+     * @param clazz
+     * @param fieldName
+     * @return
+     */
     private boolean hasField(Class clazz, String fieldName) {
         boolean hasField = false;
 
@@ -229,12 +278,21 @@ public class RestSerializer  {
         return hasField;
     }
 
+    /**
+     * JavaScript expects dates to be encoded in ISO8601. This method returns a DateFormat
+     * @return
+     */
     private static DateFormat buildIso8601Format() {
         DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return iso8601Format;
     }
 
+    /**
+     * Very simple implementation of singular and plural conversion
+     * @param singular
+     * @return
+     */
     private String getPluralFor(String singular) {
         String plural =  null;
 
@@ -249,6 +307,11 @@ public class RestSerializer  {
         return plural;
     }
 
+    /**
+     * Very simple implementation of singular and plural conversion
+     * @param plural
+     * @return
+     */
     private String getSingularFor(String plural) {
         String singular = null;
 
