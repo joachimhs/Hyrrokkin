@@ -92,7 +92,7 @@ The resulting JSON, after serialization thus becomes:
 	
 	Using the serializer is quite straight forward. Simply instantiate a RestSerializer class and execite the serialize method. 
 	
-	    Session session = repository.getSession(uuid);
+    Session session = repository.getSession(uuid);
 
     RestSerializer rs = new RestSerializer();
     JsonElement jsonElement = rs.serialize(session);
