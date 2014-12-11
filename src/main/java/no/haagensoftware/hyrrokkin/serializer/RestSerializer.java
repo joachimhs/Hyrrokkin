@@ -5,6 +5,7 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
 
+import java.beans.Introspector;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
@@ -55,10 +56,10 @@ public class RestSerializer  {
                     array.add(rootKeys.get(key).get(objKey));
                     //System.out.println("\t" + objKey + ": " + rootKeys.get(key).get(objKey).toString());
                 }
-                topObject.add(getPluralFor(key), array);
+                topObject.add(decapitalize(getPluralFor(key)), array);
             } else if (rootKeys.get(key).keySet().size() == 1) {
                 for (String objKey : rootKeys.get(key).keySet()) {
-                    topObject.add(getSingularFor(key), rootKeys.get(key).get(objKey));
+                    topObject.add(decapitalize(getSingularFor(key)), rootKeys.get(key).get(objKey));
                 }
             }
         }
@@ -286,6 +287,10 @@ public class RestSerializer  {
         DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return iso8601Format;
+    }
+
+    private String decapitalize(String input) {
+        return Introspector.decapitalize(input);
     }
 
     /**
