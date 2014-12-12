@@ -16,26 +16,37 @@ import java.util.*;
  * Created by jhsmbp on 08/12/14.
  */
 public class RestSerializer  {
-
     /**
      * This is the only public method, and will serialize any input POJO
      * @param src
      * @return
      */
     public JsonElement serialize(Object src) {
+        //These are used to determine if the root keys are objects or arrays
+        boolean inputIsList = false;
+        String inputObjectRootKey = null;
+
+
         //There is one hash table for the root keys, and one hash table for each object of a specific type
         //This will hinder duplicate objects in the return JSON
         Hashtable<String, Hashtable<String, JsonObject>> rootKeys = new Hashtable<>();
 
         if (List.class.isAssignableFrom(src.getClass())) {
+            inputIsList = true;
             for (Object obj : ((List)src)) {
                 extractObject(obj, rootKeys);
             }
         } else {
+            String className = src.getClass().getSimpleName();
+            if (src.getClass().isAnnotationPresent(SerializedClassName.class)) {
+                className = src.getClass().getAnnotation(SerializedClassName.class).value();
+            }
+
+            inputObjectRootKey = className;
             extractObject(src, rootKeys);
         }
 
-        JsonObject topObject = generateJson(rootKeys);
+        JsonObject topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey);
 
         return topObject;
     }
@@ -45,22 +56,23 @@ public class RestSerializer  {
      * @param rootKeys
      * @return
      */
-    private JsonObject generateJson(Hashtable<String, Hashtable<String, JsonObject>> rootKeys) {
+    private JsonObject generateJson(Hashtable<String, Hashtable<String, JsonObject>> rootKeys, boolean inputIsList, String inputObjectRootKey) {
         JsonObject topObject = new JsonObject();
 
         for (String key : rootKeys.keySet()) {
             //System.out.println(key);
-            if (rootKeys.get(key).keySet().size() > 1) {
+            //
+            if (key.equals(inputObjectRootKey) && !inputIsList) {
+                for (String objKey : rootKeys.get(key).keySet()) {
+                    topObject.add(decapitalize(getSingularFor(key)), rootKeys.get(key).get(objKey));
+                }
+            } else {
                 JsonArray array = new JsonArray();
                 for (String objKey : rootKeys.get(key).keySet()) {
                     array.add(rootKeys.get(key).get(objKey));
                     //System.out.println("\t" + objKey + ": " + rootKeys.get(key).get(objKey).toString());
                 }
                 topObject.add(decapitalize(getPluralFor(key)), array);
-            } else if (rootKeys.get(key).keySet().size() == 1) {
-                for (String objKey : rootKeys.get(key).keySet()) {
-                    topObject.add(decapitalize(getSingularFor(key)), rootKeys.get(key).get(objKey));
-                }
             }
         }
 
@@ -160,9 +172,10 @@ public class RestSerializer  {
                             JsonArray array = new JsonArray();
 
                             for (Object o : list) {
+                                String id = getId(o);
                                 if (isPrimitive(o.getClass())) {
                                     array.add(getPrimitiveValue(o.getClass(), o));
-                                } else if (hasField(o.getClass(), "id")) {
+                                } else if (id != null) {
                                     try {
                                         Field idField = o.getClass().getDeclaredField("id");
                                         idField.setAccessible(true);
@@ -290,7 +303,7 @@ public class RestSerializer  {
     }
 
     private String decapitalize(String input) {
-        return Introspector.decapitalize(input);
+            return Introspector.decapitalize(input);
     }
 
     /**
