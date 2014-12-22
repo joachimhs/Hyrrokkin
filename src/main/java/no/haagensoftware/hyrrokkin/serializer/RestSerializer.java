@@ -37,10 +37,7 @@ public class RestSerializer  {
                 extractObject(obj, rootKeys);
             }
         } else {
-            String className = src.getClass().getSimpleName();
-            if (src.getClass().isAnnotationPresent(SerializedClassName.class)) {
-                className = src.getClass().getAnnotation(SerializedClassName.class).value();
-            }
+            String className = getRootKeyForClass(src);
 
             inputObjectRootKey = className;
             extractObject(src, rootKeys);
@@ -125,6 +122,32 @@ public class RestSerializer  {
         return value;
     }
 
+    /**
+     * This method will get all declared fields from this class, and any super class up to the exclusiveParent, which
+     * in most cases is Object.
+     * @param startClass
+     * @param exclusiveParent
+     * @return
+     */
+    public static Iterable<Field> getFieldsUpTo(Class<?> startClass,
+                                                Class<?> exclusiveParent) {
+
+        List<Field> currentClassFields = new ArrayList<>();
+        for (Field f : startClass.getDeclaredFields()) {
+            currentClassFields.add(f);
+        }
+        Class<?> parentClass = startClass.getSuperclass();
+
+        if (parentClass != null &&
+                (exclusiveParent == null || !(parentClass.equals(exclusiveParent)))) {
+            List<Field> parentClassFields =
+                    (List<Field>) getFieldsUpTo(parentClass, exclusiveParent);
+            currentClassFields.addAll(parentClassFields);
+        }
+
+        return currentClassFields;
+    }
+
     /*
      * This method is in need of refactoring. Its too large, and has a too-wide responsibility. This makes it hard to follow its recursive logic.
      *
@@ -135,99 +158,108 @@ public class RestSerializer  {
     private void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys) {
         JsonObject rootObject = new JsonObject();
 
-        for (Field field : src.getClass().getDeclaredFields()) {
-            if (field.isAnnotationPresent(Expose.class)) {
+        String classId = getId(src);
+        String className = getRootKeyForClass(src);
 
-                String fName = field.getName();
-                if (field.isAnnotationPresent(SerializedName.class)) {
-                    fName = ((SerializedName)field.getAnnotation(SerializedName.class)).value();
-                }
-                Type fType = field.getGenericType();
+        //Only extract this object if an object with the same root key and id has NOT been
+        //extracted before. This is to prevent circular references causing StackOverflows
+        if (rootKeys.get(className) == null || rootKeys.get(className).get(classId) == null) {
+            for (Field field : getFieldsUpTo(src.getClass(), Object.class)) {
+                if (field.isAnnotationPresent(Expose.class)) {
 
-                Class clazz = field.getType();
+                    String fName = field.getName();
+                    if (field.isAnnotationPresent(SerializedName.class)) {
+                        fName = ((SerializedName) field.getAnnotation(SerializedName.class)).value();
+                    }
+                    Type fType = field.getGenericType();
 
-                //System.out.println("class: " + src.getClass().getSimpleName() + " field: " + field.getType().getName());
+                    Class clazz = field.getType();
 
-                JsonElement element = null;
+                    //System.out.println("class: " + src.getClass().getSimpleName() + " field: " + field.getType().getName());
 
-                field.setAccessible(true);
-                try {
-                    if (isPrimitive(clazz)) {
-                        element = getPrimitiveValue(clazz, field.get(src));
-                    } else if (clazz.isArray() || clazz.equals(List.class)) {
-                        List list = null;
-                        if (clazz.isArray()) {
-                            list = new ArrayList();
-                            Object[] objArray = (Object[])field.get(src);
-                            for (Object obj : objArray) {
-                                list.add(obj);
+                    JsonElement element = null;
+
+                    field.setAccessible(true);
+                    try {
+                        if (isPrimitive(clazz)) {
+                            element = getPrimitiveValue(clazz, field.get(src));
+                        } else if (clazz.isArray() || clazz.equals(List.class)) {
+                            List list = null;
+                            if (clazz.isArray()) {
+                                list = new ArrayList();
+                                Object[] objArray = (Object[]) field.get(src);
+                                for (Object obj : objArray) {
+                                    list.add(obj);
+                                }
+                            } else {
+                                list = ((List) field.get(src));
                             }
-                        } else {
-                            list = ((List)field.get(src));
-                        }
 
-                        if (list == null || list.size() == 0) {
-                            element = new JsonArray();
-                        } else if (list != null && list.size() > 0) {
-                            JsonArray array = new JsonArray();
+                            if (list == null || list.size() == 0) {
+                                element = new JsonArray();
+                            } else if (list != null && list.size() > 0) {
+                                JsonArray array = new JsonArray();
 
-                            for (Object o : list) {
-                                String id = getId(o);
-                                if (isPrimitive(o.getClass())) {
-                                    array.add(getPrimitiveValue(o.getClass(), o));
-                                } else if (id != null) {
-                                    try {
-                                        Field idField = o.getClass().getDeclaredField("id");
-                                        idField.setAccessible(true);
-                                        array.add(getPrimitiveValue(idField.getType(), idField.get(o)));
+                                for (Object o : list) {
+                                    String id = getId(o);
+                                    if (isPrimitive(o.getClass())) {
+                                        array.add(getPrimitiveValue(o.getClass(), o));
+                                    } else if (id != null) {
+                                        try {
+                                            Field idField = o.getClass().getDeclaredField("id");
+                                            idField.setAccessible(true);
+                                            array.add(getPrimitiveValue(idField.getType(), idField.get(o)));
 
-                                        extractObject(o, rootKeys);
-                                    } catch (NoSuchFieldException e) {
-                                        e.printStackTrace();
+                                            extractObject(o, rootKeys);
+                                        } catch (NoSuchFieldException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
                                 }
+
+                                element = array;
                             }
 
-                            element = array;
-                        }
+                        } else if (clazz.getName().equals("java.util.Date")) {
+                            Date dValue = (Date) field.get(src);
+                            if (dValue != null) {
+                                String dateStr = buildIso8601Format().format(dValue);
+                                element = new JsonPrimitive(dateStr);
+                            }
 
-                    } else if (clazz.getName().equals("java.util.Date")) {
-                        Date dValue = (Date)field.get(src);
-                        if (dValue != null) {
-                            String dateStr = buildIso8601Format().format(dValue);
-                            element = new JsonPrimitive(dateStr);
+                        } else if ((!clazz.equals(Object.class)) && field.get(src) != null && hasField(field.get(src).getClass(), "id")) {
+                            element = new JsonPrimitive(getId(field.get(src)));
+                            extractObject(field.get(src), rootKeys);
                         }
-
-                    } else if ((!clazz.equals(Object.class)) && field.get(src) != null && hasField(field.get(src).getClass(), "id")) {
-                        element = new JsonPrimitive(getId(field.get(src)));
-                        extractObject(field.get(src), rootKeys);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
                     }
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+
+                    if (element != null) {
+                        rootObject.add(fName, element);
+                    }
+
+                    if (rootKeys.get(className) == null) {
+                        Hashtable<String, JsonObject> objects = new Hashtable<>();
+                        rootKeys.put(className, objects);
+                    }
+
+                    if (getId(src) != null && rootKeys.get(className).get(getId(src)) == null) {
+                        rootKeys.get(className).put(getId(src), rootObject);
+                    }
+
+                    //System.out.println("\tField has Expose annotation: " + field.getName() + " field name: " + fName + " isPrimitive: " + isPrimitive + " isWrapperType: " + isWrapperType + " type: " + type + " element: " + element);
                 }
-
-                if (element != null) {
-                    rootObject.add(fName, element);
-                }
-
-
-                String className = src.getClass().getSimpleName();
-                if (src.getClass().isAnnotationPresent(SerializedClassName.class)) {
-                    className = src.getClass().getAnnotation(SerializedClassName.class).value();
-                }
-
-                if (rootKeys.get(className) == null) {
-                    Hashtable<String, JsonObject> objects = new Hashtable<>();
-                    rootKeys.put(className, objects);
-                }
-
-                if (getId(src) != null && rootKeys.get(className).get(getId(src)) == null ) {
-                    rootKeys.get(className).put(getId(src), rootObject);
-                }
-
-                //System.out.println("\tField has Expose annotation: " + field.getName() + " field name: " + fName + " isPrimitive: " + isPrimitive + " isWrapperType: " + isWrapperType + " type: " + type + " element: " + element);
             }
         }
+    }
+
+    private String getRootKeyForClass(Object src) {
+        String className = src.getClass().getSimpleName();
+        if (src.getClass().isAnnotationPresent(SerializedClassName.class)) {
+            className = src.getClass().getAnnotation(SerializedClassName.class).value();
+        }
+        return className;
     }
 
     /**
