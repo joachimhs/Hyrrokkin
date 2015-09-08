@@ -1,8 +1,13 @@
 package no.haagensoftware.hyrrokkin.deserializer;
 
 import com.google.gson.*;
+import com.google.gson.annotations.Expose;
+import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
 import no.haagensoftware.hyrrokkin.serializer.HyrrokkinPluralization;
+import no.haagensoftware.hyrrokkin.serializer.HyrrokkinSerializer;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.util.*;
 
 /**
@@ -19,6 +24,37 @@ public class JsonApiDeserializer extends HyrrokkinPluralization {
 
     //public <T> T fromJson(JsonElement json, Class<T> classOfT) throws JsonSyntaxException {
     public <T> T  deserialize(String json, Class<T> classOfT) {
+
+        Map<String, String> relationshipArrayTypes = new HashMap<>();
+
+        for (Field field : classOfT.getDeclaredFields()) {
+            if (field.getDeclaredAnnotation(Expose.class) != null) {
+                //this field is exposed, and should be included.
+                if (List.class.isAssignableFrom(field.getType())) {
+                    //Use the class name as the relationship name
+                    String relationshipName = getSingularFor(decapitalize(field.getName()));
+                    String relationshipType = "array";
+
+                    ParameterizedType stringListType = (ParameterizedType) field.getGenericType();
+                    Class<?> stringListClass = (Class<?>) stringListType.getActualTypeArguments()[0];
+                    if (stringListClass.getDeclaredAnnotation(SerializedClassName.class) != null) {
+                        //this field has a different serialized name than its qualified class name
+                        relationshipName = ((SerializedClassName)stringListClass.getDeclaredAnnotation(SerializedClassName.class)).value();
+                        relationshipName = getSingularFor(relationshipName);
+                        relationshipType = "array";
+                    }
+
+                    relationshipArrayTypes.put(relationshipName, relationshipType);
+                } else if (!(isPrimitive(field.getType()) || field.getType().getName().equals("java.util.Date"))) {
+                    String relationshipName = getSingularFor(decapitalize(field.getName()));
+                    String relationshipType = "object";
+
+                    //relationshipObjectTypes.put(relationshipName, relationshipType);
+                }
+
+            }
+        }
+
         JsonObject deserializedObject = new JsonObject();
 
         JsonElement parsedElement = new JsonParser().parse(json); //Holds the parsed Json as Gson objects
@@ -61,7 +97,11 @@ public class JsonApiDeserializer extends HyrrokkinPluralization {
 
                 if (objectsForKey.size() > 1) {
                     deserializedObject.add(getPluralFor(key), objectsForKey);
-                } else if (objectsForKey.size() == 1) {
+                } else if (objectsForKey.size() == 1 && relationshipArrayTypes.get(getSingularFor(key)) != null) {
+                    //only one object in JSON, but Class requires a list
+                    deserializedObject.add(key, objectsForKey);
+                } else if (objectsForKey.size() == 1 && relationshipArrayTypes.get(getSingularFor(key)) == null) {
+                    //Only one object in JSON, and class requires OBJECT
                     deserializedObject.add(key, objectsForKey.get(0));
                 }
 

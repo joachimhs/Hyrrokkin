@@ -242,20 +242,6 @@ public abstract class HyrrokkinSerializer extends HyrrokkinPluralization {
     }
 
     /**
-     * Checks is a class is one of the primitive types and returns true||false depending
-     * @param clazz
-     * @return
-     */
-    protected boolean isPrimitive(Class clazz) {
-        return clazz.equals(String.class) ||
-                clazz.equals(Double.TYPE) || clazz.getName().equals("java.lang.Double") ||
-                clazz.equals(Integer.TYPE) || clazz.getName().equals("java.lang.Integer") ||
-                clazz.equals(Boolean.TYPE) || clazz.getName().equals("java.lang.Boolean") ||
-                clazz.equals(Long.TYPE) || clazz.getName().equals("java.lang.Long");
-
-    }
-
-    /**
      * Getting the primitive value returned from the class
      * @param clazz
      * @param value
@@ -312,10 +298,4 @@ public abstract class HyrrokkinSerializer extends HyrrokkinPluralization {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return iso8601Format;
     }
-
-    protected String decapitalize(String input) {
-        return Introspector.decapitalize(input);
-    }
-
-
 }

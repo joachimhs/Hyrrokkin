@@ -1,7 +1,7 @@
 package no.haagensoftware.hyrrokkin.serializer;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.beans.Introspector;
+import java.util.*;
 
 /**
  * Created by jhsmbp on 08/09/15.
@@ -80,5 +80,38 @@ public class HyrrokkinPluralization {
         }
 
         return singular;
+    }
+
+    protected String decapitalize(String input) {
+        return Introspector.decapitalize(input);
+    }
+
+    protected static Set<Class<?>> getWrapperTypes()
+    {
+        Set<Class<?>> ret = new HashSet<Class<?>>();
+        ret.add(Boolean.class);
+        ret.add(Character.class);
+        ret.add(Byte.class);
+        ret.add(Short.class);
+        ret.add(Integer.class);
+        ret.add(Long.class);
+        ret.add(Float.class);
+        ret.add(Double.class);
+        ret.add(Void.class);
+        return ret;
+    }
+
+    /**
+     * Checks is a class is one of the primitive types and returns true||false depending
+     * @param clazz
+     * @return
+     */
+    protected boolean isPrimitive(Class clazz) {
+        return clazz.equals(String.class) ||
+                clazz.equals(Double.TYPE) || clazz.getName().equals("java.lang.Double") ||
+                clazz.equals(Integer.TYPE) || clazz.getName().equals("java.lang.Integer") ||
+                clazz.equals(Boolean.TYPE) || clazz.getName().equals("java.lang.Boolean") ||
+                clazz.equals(Long.TYPE) || clazz.getName().equals("java.lang.Long");
+
     }
 }
