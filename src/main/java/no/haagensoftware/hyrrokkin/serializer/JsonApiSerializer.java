@@ -117,14 +117,14 @@ public class JsonApiSerializer extends HyrrokkinSerializer {
             for (String relType : relationshipsByType.keySet()) {
                 List<JsonElement> rels = relationshipsByType.get(relType);
                 if (rels.size() == 1) {
-                    relationshipObject.add(relType, rels.get(0));
+                    relationshipObject.add(decapitalize(relType), rels.get(0));
                 } else if (rels.size() > 1) {
                     JsonArray relsArray = new JsonArray();
                     for (JsonElement relsElem : rels) {
                         relsArray.add(relsElem);
                     }
 
-                    relationshipObject.add(getPluralFor(relType), relsArray);
+                    relationshipObject.add(getPluralFor(decapitalize(relType)), relsArray);
                 }
             }
 
