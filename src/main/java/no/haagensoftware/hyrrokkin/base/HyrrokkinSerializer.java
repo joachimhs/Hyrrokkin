@@ -1,4 +1,4 @@
-package no.haagensoftware.hyrrokkin.serializer;
+package no.haagensoftware.hyrrokkin.base;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -8,7 +8,6 @@ import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
 
-import java.beans.Introspector;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
@@ -18,7 +17,7 @@ import java.util.*;
 /**
  * Created by jhsmbp on 07/09/15.
  */
-public abstract class HyrrokkinSerializer extends HyrrokkinPluralization {
+public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
     public HyrrokkinSerializer() {
         super();
     }
@@ -28,69 +27,6 @@ public abstract class HyrrokkinSerializer extends HyrrokkinPluralization {
     }
 
     public abstract JsonElement serialize(Object src);
-
-    /**
-     * Gets the ID of the object, either as the id-property or of the property with the
-     * annotation @SerializedName("id")
-     * @param object
-     * @return
-     */
-    protected String getId(Object object) {
-        String id = null;
-
-        //Use Class name as rootKey by default
-        String rootKey = object.getClass().getName().substring(0, 1).toLowerCase() + object.getClass().getName().substring(1);
-
-        //If object has SerializedClassName annotation, use that instead as rootKey
-        if (object.getClass().isAnnotationPresent(SerializedClassName.class)) {
-            rootKey = object.getClass().getAnnotation(SerializedClassName.class).value();
-        }
-
-        rootKey = getPluralFor(rootKey);
-
-        if (hasField(object.getClass(), "id")) {
-            id = getFieldStringValue(object, "id");
-        } else {
-            for (Field field : object.getClass().getDeclaredFields()) {
-                if (field.isAnnotationPresent(SerializedName.class) && field.isAnnotationPresent(Expose.class)) {
-                    String serializedName = ((SerializedName)field.getAnnotation(SerializedName.class)).value();
-                    if (serializedName.equals("id")) {
-                        id = getFieldStringValue(object, field.getName());
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (id.startsWith(rootKey + "_")) {
-            id = id.substring(0, rootKey.length() + 1);
-        }
-
-        return id;
-    }
-
-    /**
-     * Return the string value of a field
-     * @param object
-     * @param fieldName
-     * @return
-     */
-    protected String getFieldStringValue(Object object, String fieldName) {
-        String value = null;
-        try {
-            Field field = object.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-
-            if (field.get(object) != null) {
-                value = field.get(object).toString();
-            }
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return value;
-    }
 
     /**
      * This method will get all declared fields from this class, and any super class up to the exclusiveParent, which
@@ -268,34 +204,5 @@ public abstract class HyrrokkinSerializer extends HyrrokkinPluralization {
         }
 
         return element;
-    }
-
-    /**
-     * Checks if a class has a field or not. Mostly used to check if there is an id-property on the class
-     * @param clazz
-     * @param fieldName
-     * @return
-     */
-    protected boolean hasField(Class clazz, String fieldName) {
-        boolean hasField = false;
-
-        try {
-            Field f = clazz.getDeclaredField(fieldName);
-            hasField = (f != null);
-        } catch (NoSuchFieldException e) {
-            hasField = false;
-        }
-
-        return hasField;
-    }
-
-    /**
-     * JavaScript expects dates to be encoded in ISO8601. This method returns a DateFormat
-     * @return
-     */
-    protected static DateFormat buildIso8601Format() {
-        DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return iso8601Format;
     }
 }

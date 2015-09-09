@@ -1,15 +1,8 @@
 package no.haagensoftware.hyrrokkin.serializer;
 
 import com.google.gson.*;
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
-import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
+import no.haagensoftware.hyrrokkin.base.HyrrokkinSerializer;
 
-import java.beans.Introspector;
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
