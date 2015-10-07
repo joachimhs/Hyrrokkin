@@ -88,7 +88,11 @@ public class RestSerializer extends HyrrokkinSerializer {
                         } else if (field.getValue().isJsonArray()) {
                             JsonArray idStrings = new JsonArray();
                             for (JsonElement idElement : field.getValue().getAsJsonArray()) {
-                                idStrings.add(idElement.getAsJsonObject().get("id"));
+                                if (idElement.isJsonPrimitive()) {
+                                    idStrings.add(idElement.getAsJsonPrimitive());
+                                } else {
+                                    idStrings.add(idElement.getAsJsonObject().get("id"));
+                                }
                             }
                             mainObject.add(field.getKey(), idStrings);
                         } else {

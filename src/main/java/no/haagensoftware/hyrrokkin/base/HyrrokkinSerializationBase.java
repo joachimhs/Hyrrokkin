@@ -128,7 +128,9 @@ public class HyrrokkinSerializationBase {
 
         rootKey = getPluralFor(rootKey);
 
-        if (hasField(object.getClass(), "id")) {
+        if (object instanceof String) {
+            id = (String)object;
+        } else if (hasField(object.getClass(), "id")) {
             id = getFieldStringValue(object, "id");
         } else {
             for (Field field : object.getClass().getDeclaredFields()) {
