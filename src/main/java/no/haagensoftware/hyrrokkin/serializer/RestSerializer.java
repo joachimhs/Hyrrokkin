@@ -23,7 +23,7 @@ public class RestSerializer extends HyrrokkinSerializer {
      * @param src
      * @return
      */
-    public JsonElement serialize(Object src) {
+    public JsonElement serialize(Object src, List<String> sideloadKeys) {
         //These are used to determine if the root keys are objects or arrays
         boolean inputIsList = false;
         String inputObjectRootKey = null;
@@ -35,18 +35,27 @@ public class RestSerializer extends HyrrokkinSerializer {
         if (List.class.isAssignableFrom(src.getClass())) {
             inputIsList = true;
             for (Object obj : ((List)src)) {
-                extractObject(obj, rootKeys);
+                extractObject(obj, rootKeys, sideloadKeys);
             }
         } else {
             String className = getRootKeyForClass(src);
 
             inputObjectRootKey = className;
-            extractObject(src, rootKeys);
+            extractObject(src, rootKeys, sideloadKeys);
         }
 
         JsonObject topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey);
 
         return topObject;
+    }
+    /**
+     * This is the only public method, and will serialize any input POJO
+     * @param src
+     * @return
+     * @deprecated Use the serialize(Object src, Boolean sideload) instead
+     */
+    public JsonElement serialize(Object src) {
+        return this.serialize(src, null);
     }
 
     /**

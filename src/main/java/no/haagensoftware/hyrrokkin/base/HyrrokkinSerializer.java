@@ -61,7 +61,7 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
      * whenever it reaches a property of type Object, Array or List, marked with the @Expose annotation
      *
      */
-    protected void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys) {
+    protected void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys, List<String> sideloadKeys) {
         JsonObject rootObject = new JsonObject();
 
         String classId = getId(src);
@@ -115,13 +115,16 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                                             Field idField = o.getClass().getDeclaredField("id");
                                             idField.setAccessible(true);
 
+                                            String rootKeyForClass = decapitalize(getRootKeyForClass(o));
                                             JsonObject relationshipObject = new JsonObject();
                                             relationshipObject.add("id", getPrimitiveValue(idField.getType(), idField.get(o)));
-                                            relationshipObject.addProperty("type", getRootKeyForClass(o));
+                                            relationshipObject.addProperty("type", rootKeyForClass);
 
                                             array.add(relationshipObject);
 
-                                            extractObject(o, rootKeys);
+                                            if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
+                                                extractObject(o, rootKeys, sideloadKeys);
+                                            }
                                         } catch (NoSuchFieldException e) {
                                             e.printStackTrace();
                                         }
@@ -139,12 +142,17 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                             }
 
                         } else if ((!clazz.equals(Object.class)) && field.get(src) != null && hasField(field.get(src).getClass(), "id")) {
+                            String rootKeyForClass = decapitalize(getRootKeyForClass(field.get(src)));
+
                             JsonObject relationshipObject = new JsonObject();
                             relationshipObject.add("id", new JsonPrimitive(getId(field.get(src))));
-                            relationshipObject.addProperty("type", decapitalize(getRootKeyForClass(field.get(src))));
+                            relationshipObject.addProperty("type", rootKeyForClass);
 
                             element = relationshipObject;
-                            extractObject(field.get(src), rootKeys);
+
+                            if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
+                                extractObject(field.get(src), rootKeys, sideloadKeys);
+                            }
                         }
                     } catch (IllegalAccessException e) {
                         e.printStackTrace();

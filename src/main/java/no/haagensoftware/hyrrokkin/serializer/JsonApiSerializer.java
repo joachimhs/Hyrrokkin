@@ -31,13 +31,13 @@ public class JsonApiSerializer extends HyrrokkinSerializer {
         if (List.class.isAssignableFrom(src.getClass())) {
             inputIsList = true;
             for (Object obj : ((List)src)) {
-                extractObject(obj, rootKeys);
+                extractObject(obj, rootKeys, null);
             }
         } else {
             String className = getRootKeyForClass(src);
 
             inputObjectRootKey = className;
-            extractObject(src, rootKeys);
+            extractObject(src, rootKeys, null);
         }
 
         JsonObject topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey);
