@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>no.haagensoftware.hyrrokkin</groupId>
     <artifactId>hyrrokkin</artifactId>
-	<version>0.7-SNAPSHOT</version>
+	<version>0.7.4</version>
     <packaging>jar</packaging>
     <name>Hyrrokin - A Java POJO to Ember Data serializer</name>
     <build>
@@ -45,7 +45,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
-									<finalName>hyrrokkin-${project.version}</finalName>
+									<finalName>hyrrokkin-${project.version}-with-dependencies</finalName>
 									<filters>
 										<filter>
 											<excludes>

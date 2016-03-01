@@ -1,9 +1,6 @@
 package no.haagensoftware.hyrrokkin.base;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.google.gson.*;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
@@ -61,7 +58,7 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
      * whenever it reaches a property of type Object, Array or List, marked with the @Expose annotation
      *
      */
-    protected void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys, List<String> sideloadKeys) {
+    protected void extractObject(Object src, Hashtable<String, Hashtable<String, JsonObject>> rootKeys, List<String> sideloadKeys, boolean embedded) {
         JsonObject rootObject = new JsonObject();
 
         String classId = getId(src);
@@ -111,23 +108,27 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                                     if (isPrimitive(o.getClass())) {
                                         array.add(getPrimitiveValue(o.getClass(), o));
                                     } else if (id != null) {
-                                        try {
-                                            Field idField = o.getClass().getDeclaredField("id");
-                                            idField.setAccessible(true);
+                                        String objectId = getId(o);
 
-                                            String rootKeyForClass = decapitalize(getRootKeyForClass(o));
+                                        String rootKeyForClass = decapitalize(getRootKeyForClass(o));
+
+                                        if (embedded
+                                                && sideloadKeys != null
+                                                && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
+
+                                            array.add(new Gson().toJsonTree(o));
+                                        } else if (!embedded) { //sideloaded
                                             JsonObject relationshipObject = new JsonObject();
-                                            relationshipObject.add("id", getPrimitiveValue(idField.getType(), idField.get(o)));
+                                            relationshipObject.add("id", new JsonPrimitive(objectId));
                                             relationshipObject.addProperty("type", rootKeyForClass);
 
                                             array.add(relationshipObject);
 
                                             if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
-                                                extractObject(o, rootKeys, sideloadKeys);
+                                                extractObject(o, rootKeys, sideloadKeys, embedded);
                                             }
-                                        } catch (NoSuchFieldException e) {
-                                            e.printStackTrace();
                                         }
+
                                     }
                                 }
 
@@ -151,7 +152,7 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                             element = relationshipObject;
 
                             if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
-                                extractObject(field.get(src), rootKeys, sideloadKeys);
+                                extractObject(field.get(src), rootKeys, sideloadKeys, embedded);
                             }
                         }
                     } catch (IllegalAccessException e) {

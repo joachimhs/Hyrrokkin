@@ -23,7 +23,7 @@ public class RestSerializer extends HyrrokkinSerializer {
      * @param src
      * @return
      */
-    public JsonElement serialize(Object src, List<String> sideloadKeys) {
+    public JsonElement serialize(Object src, List<String> sideloadKeys, boolean embedded) {
         //These are used to determine if the root keys are objects or arrays
         boolean inputIsList = false;
         String inputObjectRootKey = null;
@@ -35,18 +35,33 @@ public class RestSerializer extends HyrrokkinSerializer {
         if (List.class.isAssignableFrom(src.getClass())) {
             inputIsList = true;
             for (Object obj : ((List)src)) {
-                extractObject(obj, rootKeys, sideloadKeys);
+                extractObject(obj, rootKeys, sideloadKeys, embedded);
             }
         } else {
             String className = getRootKeyForClass(src);
 
             inputObjectRootKey = className;
-            extractObject(src, rootKeys, sideloadKeys);
+            extractObject(src, rootKeys, sideloadKeys, embedded);
         }
 
-        JsonObject topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey);
+        JsonObject topObject = null;
+        if (embedded) {
+            topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey, true);
+        } else {
+            topObject = generateJson(rootKeys, inputIsList, inputObjectRootKey, false);
+        }
 
         return topObject;
+    }
+
+    /**
+     * This is the only public method, and will serialize any input POJO
+     * @param src
+     * @return
+     * @deprecated
+     */
+    public JsonElement serialize(Object src, List<String> sideloadKeys) {
+        return this.serialize(src, sideloadKeys, false);
     }
     /**
      * This is the only public method, and will serialize any input POJO
@@ -63,7 +78,12 @@ public class RestSerializer extends HyrrokkinSerializer {
      * @param rootKeys
      * @return
      */
-    private JsonObject generateJson(Hashtable<String, Hashtable<String, JsonObject>> rootKeys, boolean inputIsList, String inputObjectRootKey) {
+    private JsonObject generateJson(
+            Hashtable<String, Hashtable<String, JsonObject>> rootKeys,
+            boolean inputIsList,
+            String inputObjectRootKey,
+            boolean isEmbedded) {
+
         JsonObject topObject = new JsonObject();
 
         for (String key : rootKeys.keySet()) {
@@ -87,27 +107,32 @@ public class RestSerializer extends HyrrokkinSerializer {
             if (key.equals(inputObjectRootKey) && !thisInputIsList) {
                 JsonObject mainObject = new JsonObject();
 
-
                 for (String objKey : rootKeys.get(key).keySet()) {
                     JsonObject payloadObject = rootKeys.get(key).get(objKey);
+
 
                     for (Map.Entry<String, JsonElement> field : payloadObject.entrySet()) {
                         if (field.getValue().isJsonObject()) {
                             mainObject.add(field.getKey(), field.getValue().getAsJsonObject().get("id"));
                         } else if (field.getValue().isJsonArray()) {
-                            JsonArray idStrings = new JsonArray();
-                            for (JsonElement idElement : field.getValue().getAsJsonArray()) {
-                                if (idElement.isJsonPrimitive()) {
-                                    idStrings.add(idElement.getAsJsonPrimitive());
-                                } else {
-                                    idStrings.add(idElement.getAsJsonObject().get("id"));
+                            if (isEmbedded) {
+                                mainObject.add(field.getKey(), field.getValue());
+                            } else {
+                                JsonArray idStrings = new JsonArray();
+                                for (JsonElement idElement : field.getValue().getAsJsonArray()) {
+                                    if (idElement.isJsonPrimitive()) {
+                                        idStrings.add(idElement.getAsJsonPrimitive());
+                                    } else {
+                                        idStrings.add(idElement.getAsJsonObject().get("id"));
+                                    }
                                 }
+                                mainObject.add(field.getKey(), idStrings);
                             }
-                            mainObject.add(field.getKey(), idStrings);
                         } else {
                             mainObject.add(field.getKey(), field.getValue());
                         }
                     }
+
                 }
 
                 topObject.add(decapitalize(getSingularFor(key)), mainObject);

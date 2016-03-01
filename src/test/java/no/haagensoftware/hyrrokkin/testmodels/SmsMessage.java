@@ -31,6 +31,7 @@ public class SmsMessage {
 
     public SmsMessage() {
         recipients = new ArrayList<>();
+        smsReceipts = new ArrayList<>();
     }
 
     public String getId() {

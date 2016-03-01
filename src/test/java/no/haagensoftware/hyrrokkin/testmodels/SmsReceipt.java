@@ -14,6 +14,13 @@ public class SmsReceipt {
     public SmsReceipt() {
     }
 
+    public SmsReceipt(String id, String status, Integer numberOfMessagesSent, Integer numberOfCharactersSent) {
+        this.id = id;
+        this.status = status;
+        this.numberOfMessagesSent = numberOfMessagesSent;
+        this.numberOfCharactersSent = numberOfCharactersSent;
+    }
+
     public String getId() {
         return id;
     }
