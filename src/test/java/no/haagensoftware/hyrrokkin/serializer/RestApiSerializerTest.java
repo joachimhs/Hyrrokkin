@@ -2,7 +2,9 @@ package no.haagensoftware.hyrrokkin.serializer;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import junit.framework.Assert;
+import no.haagensoftware.hyrrokkin.annotations.SerializeException;
 import no.haagensoftware.hyrrokkin.testmodels.SmsMessage;
 import no.haagensoftware.hyrrokkin.testmodels.SmsReceipt;
 import no.haagensoftware.hyrrokkin.testmodels.SmsRecipient;
@@ -37,6 +39,15 @@ public class RestApiSerializerTest {
     public void testSimpleObject() {
         System.out.println(serializer.serialize(testMessage).toString());
         Assert.assertEquals(buildUpSimpleObject().toString(), serializer.serialize(testMessage).toString());
+    }
+
+    @Test(expected = SerializeException.class)
+    public void testNoIdWillThrowSerializeException() {
+        SmsMessage smsMessage = new SmsMessage();
+        smsMessage.setFrom("004741415805");
+        smsMessage.setText("This is a text message containing less than 160 characters, and is sent as a single SMS.");
+
+        serializer.serialize(smsMessage);
     }
 
     @Test
@@ -81,50 +92,56 @@ public class RestApiSerializerTest {
     private JsonObject buildUpExpectedWithListRelationships() {
         JsonObject expected = new JsonObject();
         JsonObject data = new JsonObject();
+        data.addProperty("id", "testMessage1");
 
-        JsonObject attributes = new JsonObject();
-        attributes.addProperty("from", "004741415805");
-        attributes.addProperty("text", "This is a text message containing less than 160 characters, and is sent as a single SMS.");
+        data.addProperty("from", "004741415805");
+        data.addProperty("text", "This is a text message containing less than 160 characters, and is sent as a single SMS.");
 
-        JsonObject relationships = new JsonObject();
+        JsonArray recipientsRelArray = new JsonArray();
+        recipientsRelArray.add(new JsonPrimitive("004712341234"));
+        recipientsRelArray.add(new JsonPrimitive("The Office"));
+
+        data.add("recipients", recipientsRelArray);
+
+
+        JsonArray includedArray = new JsonArray();
+        includedArray.add(new JsonPrimitive("receiptid1"));
+        includedArray.add(new JsonPrimitive("receiptid2"));
+        data.add("smsReceipts", includedArray);
+
+        JsonObject recipient1 = new JsonObject();
+        recipient1.addProperty("id", "receiptid2");
+        recipient1.addProperty("status", "status2");
+        recipient1.addProperty("numberOfMessagesSent", 160);
+        recipient1.addProperty("numberOfCharactersSent", 160);
+
+        JsonObject recipient2 = new JsonObject();
+        recipient2.addProperty("id", "receiptid1");
+        recipient2.addProperty("status", "status1");
+        recipient2.addProperty("numberOfMessagesSent", 160);
+        recipient2.addProperty("numberOfCharactersSent", 160);
+
+        JsonArray smsReceipts = new JsonArray();
+        smsReceipts.add(recipient1);
+        smsReceipts.add(recipient2);
+
+
 
         JsonObject recipientRel1 = new JsonObject();
         recipientRel1.addProperty("id", "004712341234");
-        recipientRel1.addProperty("type", "recipient");
+        recipientRel1.addProperty("phoneNumber", "004712341234");
 
         JsonObject recipientRel2 = new JsonObject();
         recipientRel2.addProperty("id", "The Office");
-        recipientRel2.addProperty("type", "recipient");
+        recipientRel2.addProperty("phoneNumber", "004798765432");
 
-        JsonArray recipientsRelArray = new JsonArray();
-        recipientsRelArray.add(recipientRel1);
-        recipientsRelArray.add(recipientRel2);
+        JsonArray recipients = new JsonArray();
+        recipients.add(recipientRel1);
+        recipients.add(recipientRel2);
 
-        relationships.add("recipients", recipientsRelArray);
-
-        data.add("attributes", attributes);
-
-        data.addProperty("type", "sms");
-        data.addProperty("id", "testMessage1");
-
-        data.add("relationships", relationships);
-
-        JsonArray includedArray = new JsonArray();
-        JsonObject recipient1 = new JsonObject();
-        recipient1.addProperty("id", "004712341234");
-        recipient1.addProperty("phoneNumber", "004712341234");
-        recipient1.addProperty("type", "recipient");
-
-        JsonObject recipient2 = new JsonObject();
-        recipient2.addProperty("id", "The Office");
-        recipient2.addProperty("phoneNumber", "004798765432");
-        recipient2.addProperty("type", "recipient");
-
-        includedArray.add(recipient1);
-        includedArray.add(recipient2);
-
-        expected.add("data", data);
-        expected.add("included", includedArray);
+        expected.add("sms", data);
+        expected.add("smsReceipts", smsReceipts);
+        expected.add("recipients", recipients);
         return expected;
     }
 

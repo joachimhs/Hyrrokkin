@@ -2,6 +2,7 @@ package no.haagensoftware.hyrrokkin.base;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import no.haagensoftware.hyrrokkin.annotations.SerializeException;
 import no.haagensoftware.hyrrokkin.annotations.SerializedClassName;
 
 import java.beans.Introspector;
@@ -144,6 +145,9 @@ public class HyrrokkinSerializationBase {
             }
         }
 
+        if (id == null) {
+            throw new SerializeException("Object " + object.getClass().getName() + " sent for serialization lacks id.");
+        }
         if (id.startsWith(rootKey + "_")) {
             id = id.substring(0, rootKey.length() + 1);
         }
