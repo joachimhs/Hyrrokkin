@@ -135,14 +135,14 @@ public class RestSerializer extends HyrrokkinSerializer {
 
                 }
 
-                topObject.add(decapitalize(getSingularFor(key)), mainObject);
+                topObject.add(getSingularFor(decapitalize(key)), mainObject);
             } else {
                 JsonArray array = new JsonArray();
                 for (String objKey : rootKeys.get(key).keySet()) {
                     array.add(rootKeys.get(key).get(objKey));
                     //System.out.println("\t" + objKey + ": " + rootKeys.get(key).get(objKey).toString());
                 }
-                topObject.add(decapitalize(getPluralFor(key)), array);
+                topObject.add(getPluralFor(decapitalize(key)), array);
             }
         }
 
