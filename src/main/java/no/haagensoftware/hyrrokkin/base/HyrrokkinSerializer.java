@@ -51,6 +51,40 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
         return currentClassFields;
     }
 
+    protected JsonObject extractEmbeddedObject(Object src) {
+        JsonObject rootObject = new JsonObject();
+
+        for (Field field : getFieldsUpTo(src.getClass(), Object.class)) {
+            if (field.isAnnotationPresent(Expose.class)) {
+                field.setAccessible(true);
+                String fName = field.getName();
+                if (field.isAnnotationPresent(SerializedName.class)) {
+                    fName = ((SerializedName) field.getAnnotation(SerializedName.class)).value();
+                }
+
+                Class clazz = field.getType();
+
+                JsonElement element = null;
+
+                try {
+                    if (isPrimitive(clazz)) {
+                        element = getPrimitiveValue(clazz, field.get(src));
+                        rootObject.add(fName, element);
+                    } else if (clazz.isArray() || clazz.equals(List.class)) {
+                        //Not Yet Supported
+                    }  else {
+                        element = new Gson().toJsonTree(clazz);
+                        rootObject.add(fName, element);
+                    }
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return rootObject;
+    }
+
     /*
      * This method is in need of refactoring. Its too large, and has a too-wide responsibility. This makes it hard to follow its recursive logic.
      *
@@ -116,7 +150,9 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                                                 && sideloadKeys != null
                                                 && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
 
-                                            array.add(new Gson().toJsonTree(o));
+
+                                            //array.add(new Gson().toJsonTree(o));
+                                            array.add(extractEmbeddedObject(o));
                                         } else if (!embedded) { //sideloaded
                                             JsonObject relationshipObject = new JsonObject();
                                             relationshipObject.add("id", new JsonPrimitive(objectId));
