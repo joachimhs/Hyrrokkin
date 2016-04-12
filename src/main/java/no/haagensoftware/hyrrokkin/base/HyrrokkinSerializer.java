@@ -71,7 +71,13 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                         element = getPrimitiveValue(clazz, field.get(src));
                         rootObject.add(fName, element);
                     } else if (clazz.isArray() || clazz.equals(List.class)) {
-                        //Not Yet Supported
+                        List list = extractListOrArray(src, field, clazz);
+                        JsonArray jsonList = new JsonArray();
+                        for (Object o : list) {
+                            jsonList.add(extractEmbeddedObject(o));
+
+                        }
+                        rootObject.add(fName, jsonList);
                     }  else {
                         element = new Gson().toJsonTree(clazz);
                         rootObject.add(fName, element);
@@ -121,16 +127,7 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                         if (isPrimitive(clazz)) {
                             element = getPrimitiveValue(clazz, field.get(src));
                         } else if (clazz.isArray() || clazz.equals(List.class)) {
-                            List list = null;
-                            if (clazz.isArray()) {
-                                list = new ArrayList();
-                                Object[] objArray = (Object[]) field.get(src);
-                                for (Object obj : objArray) {
-                                    list.add(obj);
-                                }
-                            } else {
-                                list = ((List) field.get(src));
-                            }
+                            List list = extractListOrArray(src, field, clazz);
 
                             if (list == null || list.size() == 0) {
                                 element = new JsonArray();
@@ -212,6 +209,20 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                 }
             }
         }
+    }
+
+    private List extractListOrArray(Object src, Field field, Class clazz) throws IllegalAccessException {
+        List list = null;
+        if (clazz.isArray()) {
+            list = new ArrayList();
+            Object[] objArray = (Object[]) field.get(src);
+            for (Object obj : objArray) {
+                list.add(obj);
+            }
+        } else {
+            list = ((List) field.get(src));
+        }
+        return list;
     }
 
     protected String getRootKeyForClass(Object src) {
