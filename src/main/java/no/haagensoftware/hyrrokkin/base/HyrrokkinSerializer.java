@@ -178,14 +178,21 @@ public abstract class HyrrokkinSerializer extends HyrrokkinSerializationBase {
                         } else if ((!clazz.equals(Object.class)) && field.get(src) != null && hasField(field.get(src).getClass(), "id")) {
                             String rootKeyForClass = decapitalize(getRootKeyForClass(field.get(src)));
 
-                            JsonObject relationshipObject = new JsonObject();
-                            relationshipObject.add("id", new JsonPrimitive(getId(field.get(src))));
-                            relationshipObject.addProperty("type", rootKeyForClass);
+                            if (embedded
+                                    && sideloadKeys != null
+                                    && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
+                                //array.add(extractEmbeddedObject(o));
+                                element = extractEmbeddedObject(field.get(src));
+                            } else {
+                                JsonObject relationshipObject = new JsonObject();
+                                relationshipObject.add("id", new JsonPrimitive(getId(field.get(src))));
+                                relationshipObject.addProperty("type", rootKeyForClass);
 
-                            element = relationshipObject;
+                                element = relationshipObject;
 
-                            if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
-                                extractObject(field.get(src), rootKeys, sideloadKeys, embedded);
+                                if (sideloadKeys != null && (sideloadKeys.contains(rootKeyForClass) || sideloadKeys.contains("all"))) {
+                                    extractObject(field.get(src), rootKeys, sideloadKeys, embedded);
+                                }
                             }
                         }
                     } catch (IllegalAccessException e) {

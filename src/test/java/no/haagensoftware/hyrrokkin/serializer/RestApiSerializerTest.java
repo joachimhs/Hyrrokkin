@@ -35,7 +35,7 @@ public class RestApiSerializerTest {
     }
 
     @Test
-    @Ignore
+
     public void testSimpleObject() {
         System.out.println(serializer.serialize(testMessage).toString());
         Assert.assertEquals(buildUpSimpleObject().toString(), serializer.serialize(testMessage).toString());
@@ -64,6 +64,23 @@ public class RestApiSerializerTest {
 
         String expected = buildUpExpectedWithListRelationships().toString();
         String serialized = serializer.serialize(testMessage, Arrays.asList("recipient", "smsReceipt"), false).toString();
+
+        System.out.println(expected);
+        System.out.println(serialized);
+
+        Assert.assertEquals(expected, serialized);
+    }
+
+    @Test
+    public void testEmbeddedObject() {
+        User user = new User();
+        user.setId("jhs");
+        user.setEpost("joachim@haagen-software.no");
+
+        testMessage.setUser(user);
+
+        String expected = buildUpExpectedWithObjectRelationship().toString();
+        String serialized = serializer.serialize(testMessage, Arrays.asList("user"), true).toString();
 
         System.out.println(expected);
         System.out.println(serialized);
@@ -147,35 +164,20 @@ public class RestApiSerializerTest {
 
     private JsonObject buildUpExpectedWithObjectRelationship() {
         JsonObject expected = new JsonObject();
-        JsonObject data = new JsonObject();
+        JsonObject smsObject = new JsonObject();
+        smsObject.addProperty("id", "testMessage1");
+        smsObject.addProperty("from", "004741415805");
+        smsObject.addProperty("text", "This is a text message containing less than 160 characters, and is sent as a single SMS.");
+        smsObject.add("recipients", new JsonArray());
+        smsObject.add("smsReceipts", new JsonArray());
 
-        JsonObject attributes = new JsonObject();
-        attributes.addProperty("from", "004741415805");
-        attributes.addProperty("text", "This is a text message containing less than 160 characters, and is sent as a single SMS.");
+        JsonObject userObject = new JsonObject();
+        userObject.addProperty("id", "jhs");
+        userObject.addProperty("epost", "joachim@haagen-software.no");
 
-        JsonObject relationships = new JsonObject();
-        JsonObject userRelationship = new JsonObject();
-        userRelationship.addProperty("id", "jhs");
-        userRelationship.addProperty("type", "user");
-        relationships.add("user", userRelationship);
+        smsObject.add("user", userObject);
 
-        data.add("attributes", attributes);
-
-        data.addProperty("type", "sms");
-        data.addProperty("id", "testMessage1");
-
-        data.add("relationships", relationships);
-
-        JsonArray includedArray = new JsonArray();
-        JsonObject jhsUser = new JsonObject();
-        jhsUser.addProperty("id", "jhs");
-        jhsUser.addProperty("epost", "jhs@mail.com");
-        jhsUser.addProperty("type", "user");
-
-        includedArray.add(jhsUser);
-
-        expected.add("data", data);
-        expected.add("included", includedArray);
+        expected.add("sms", smsObject);
         return expected;
     }
 }

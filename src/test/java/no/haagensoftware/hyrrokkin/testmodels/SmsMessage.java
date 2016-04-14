@@ -26,6 +26,7 @@ public class SmsMessage {
 
     @Expose private List<SmsRecipient> recipients;
     @Expose private List<SmsReceipt> smsReceipts;
+    @Expose private SmsRecipient recipient;
 
     @Expose private User user;
 
@@ -120,6 +121,14 @@ public class SmsMessage {
 
     public void setSmsReceipts(List<SmsReceipt> smsReceipts) {
         this.smsReceipts = smsReceipts;
+    }
+
+    public SmsRecipient getRecipient() {
+        return recipient;
+    }
+
+    public void setRecipient(SmsRecipient recipient) {
+        this.recipient = recipient;
     }
 
     public User getUser() {

@@ -113,7 +113,11 @@ public class RestSerializer extends HyrrokkinSerializer {
 
                     for (Map.Entry<String, JsonElement> field : payloadObject.entrySet()) {
                         if (field.getValue().isJsonObject()) {
-                            mainObject.add(field.getKey(), field.getValue().getAsJsonObject().get("id"));
+                            if (isEmbedded) {
+                                mainObject.add(field.getKey(), field.getValue());
+                            } else {
+                                mainObject.add(field.getKey(), field.getValue().getAsJsonObject().get("id"));
+                            }
                         } else if (field.getValue().isJsonArray()) {
                             if (isEmbedded) {
                                 mainObject.add(field.getKey(), field.getValue());
