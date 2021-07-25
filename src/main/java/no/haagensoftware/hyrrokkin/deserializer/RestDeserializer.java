@@ -1,9 +1,6 @@
 package no.haagensoftware.hyrrokkin.deserializer;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import no.haagensoftware.hyrrokkin.base.HyrrokkinDeserializer;
 
 import java.util.Map;
@@ -68,6 +65,8 @@ public class RestDeserializer extends HyrrokkinDeserializer {
             //TODO: NOT YET SUPPORTED
         }
 
-        return new Gson().fromJson(deserializedObject, classOfT);
+        Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+
+        return gson.fromJson(deserializedObject, classOfT);
     }
 }
